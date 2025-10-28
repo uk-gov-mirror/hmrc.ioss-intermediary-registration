@@ -32,6 +32,7 @@
 
 package uk.gov.hmrc.iossintermediaryregistration.models.responses
 
+import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.iossintermediaryregistration.models.core.EisErrorResponse
 
 sealed trait ErrorResponse {
@@ -78,3 +79,9 @@ case class EisError(eisErrorResponse: EisErrorResponse) extends ErrorResponse {
 }
 
 case class EtmpException(message: String) extends Exception(message)
+
+case class TaxEnrolmentErrorResponse(code: String, message: String)
+
+object TaxEnrolmentErrorResponse {
+  implicit val format: OFormat[TaxEnrolmentErrorResponse] = Json.format[TaxEnrolmentErrorResponse]
+}
