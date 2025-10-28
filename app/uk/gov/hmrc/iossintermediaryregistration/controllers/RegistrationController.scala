@@ -143,4 +143,12 @@ case class RegistrationController @Inject()(
           InternalServerError(errorMessage)
       }
   }
+
+  def getAccounts: Action[AnyContent] = cc.authAndRequireIoss().async {
+    implicit request =>
+      enrolmentsConnector.es2(request.credentials.providerId).map {
+        case Right(enrolments) => Ok(Json.toJson(enrolments))
+        case Left(e) => InternalServerError(e.body)
+      }
+  }
 }
