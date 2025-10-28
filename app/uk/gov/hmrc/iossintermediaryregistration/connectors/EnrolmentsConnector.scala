@@ -21,7 +21,8 @@ import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
 import uk.gov.hmrc.http.{HeaderCarrier, HttpErrorFunctions, HttpResponse, StringContextOps}
 import uk.gov.hmrc.http.HttpReads.Implicits.*
 import uk.gov.hmrc.http.client.HttpClientV2
-import uk.gov.hmrc.iossintermediaryregistration.config.TaxEnrolmentsConfig
+import uk.gov.hmrc.iossintermediaryregistration.config.{EnrolmentProxyConfig, TaxEnrolmentsConfig}
+import uk.gov.hmrc.iossintermediaryregistration.connectors.EnrolmentsHttpParser._
 import uk.gov.hmrc.iossintermediaryregistration.controllers.routes
 import uk.gov.hmrc.iossintermediaryregistration.logging.Logging
 import uk.gov.hmrc.iossintermediaryregistration.models.enrolments.SubscriberRequest
@@ -32,6 +33,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class EnrolmentsConnector @Inject()(
                                      taxEnrolmentsConfig: TaxEnrolmentsConfig,
+                                     enrolmentProxyConfig: EnrolmentProxyConfig,
                                      httpClientV2: HttpClientV2
                                    )
                                    (implicit ec: ExecutionContext) extends HttpErrorFunctions with Logging {
@@ -46,6 +48,12 @@ class EnrolmentsConnector @Inject()(
           etmpId
         )
       )).execute[HttpResponse]
+  }
+
+  def es2(userId: String)(implicit hc: HeaderCarrier): Future[ES2EnrolmentResultsResponse] = {
+    httpClientV2.get(
+      url"${enrolmentProxyConfig.baseUrl}enrolment-store/users/$userId/enrolments?service=HMRC-IOSS-ORG"
+    ).execute[ES2EnrolmentResultsResponse]
   }
 
 }
