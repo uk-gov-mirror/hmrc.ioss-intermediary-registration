@@ -43,7 +43,7 @@ class EnrolmentsConnector @Inject()(
 
     httpClientV2.put(url"${taxEnrolmentsConfig.baseUrl}subscriptions/$subscriptionId/subscriber")
       .withBody(Json.toJson(
-        SubscriberRequest(taxEnrolmentsConfig.iossIntermediaryEnrolmentKey,
+        SubscriberRequest(taxEnrolmentsConfig.intermediaryEnrolment,
           s"${taxEnrolmentsConfig.callbackBaseUrl}${routes.EnrolmentsSubscriptionController.authoriseEnrolment(subscriptionId).url}",
           etmpId
         )

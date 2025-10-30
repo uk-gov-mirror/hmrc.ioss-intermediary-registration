@@ -24,5 +24,5 @@ class TaxEnrolmentsConfig @Inject()(config: Configuration) {
 
   val baseUrl: Service = config.get[Service]("microservice.services.enrolments")
   val callbackBaseUrl: String = config.get[String]("microservice.services.enrolments.callbackBaseUrl")
-  val iossIntermediaryEnrolmentKey: String = config.get[String]("iossIntermediaryEnrolmentKey")
+  val intermediaryEnrolment: String = config.get[String]("intermediaryEnrolment")
 }

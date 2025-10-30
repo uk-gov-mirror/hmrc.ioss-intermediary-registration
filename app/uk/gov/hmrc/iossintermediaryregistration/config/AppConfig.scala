@@ -32,4 +32,7 @@ class AppConfig @Inject()(config: Configuration) {
   val delay: Int = config.get[Int]("features.delay")
 
   val encryptionKey: String = config.get[String]("mongodb.encryption.key")
+
+  val intermediaryEnrolment: String = config.get[String]("intermediaryEnrolment")
+  val intermediaryEnrolmentKey: String = config.get[String]("intermediaryEnrolmentKey")
 }
