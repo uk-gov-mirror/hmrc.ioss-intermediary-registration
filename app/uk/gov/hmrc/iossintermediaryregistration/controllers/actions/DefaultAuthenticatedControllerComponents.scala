@@ -30,9 +30,8 @@ trait AuthenticatedControllerComponents extends ControllerComponents {
   def identify: AuthAction
 
   def requireVat: VatRequiredAction
-
-  def requireIoss: IossRequiredAction
   
+  def requireIntermediary: IntermediaryRequiredAction
 
   def auth(): ActionBuilder[AuthorisedRequest, AnyContent] =
     actionBuilder andThen
@@ -42,9 +41,9 @@ trait AuthenticatedControllerComponents extends ControllerComponents {
     auth() andThen
       requireVat
 
-  def authAndRequireIoss(): ActionBuilder[AuthorisedMandatoryIossRequest, AnyContent] =
+  def authAndRequireIntermediary(): ActionBuilder[AuthorisedMandatoryIntermediaryRequest, AnyContent] =
     authAndRequireVat() andThen
-      requireIoss
+      requireIntermediary
   
 }
 
@@ -57,5 +56,5 @@ case class DefaultAuthenticatedControllerComponents @Inject()(
                                                                executionContext: ExecutionContext,
                                                                identify: AuthAction,
                                                                requireVat: VatRequiredAction,
-                                                               requireIoss: IossRequiredAction
+                                                               requireIntermediary: IntermediaryRequiredAction
                                                              ) extends AuthenticatedControllerComponents
