@@ -16,24 +16,36 @@
 
 package uk.gov.hmrc.iossintermediaryregistration.controllers.actions
 
-import play.api.mvc.{ActionRefiner, Result}
 import play.api.mvc.Results.Unauthorized
+import play.api.mvc.{ActionRefiner, Result}
 import uk.gov.hmrc.iossintermediaryregistration.logging.Logging
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class IossRequiredAction @Inject()(implicit val executionContext: ExecutionContext)
-  extends ActionRefiner[AuthorisedMandatoryVrnRequest, AuthorisedMandatoryIossRequest] with Logging {
+class IntermediaryRequiredAction @Inject()(implicit val executionContext: ExecutionContext)
+  extends ActionRefiner[AuthorisedMandatoryVrnRequest, AuthorisedMandatoryIntermediaryRequest] with Logging {
 
-  override protected def refine[A](request: AuthorisedMandatoryVrnRequest[A]): Future[Either[Result, AuthorisedMandatoryIossRequest[A]]] = {
-
-    request.iossNumber match {
+  override protected def refine[A](request: AuthorisedMandatoryVrnRequest[A]):
+  Future[Either[Result, AuthorisedMandatoryIntermediaryRequest[A]]] = {
+    
+    request.intermediaryNumber match {
       case None =>
-        logger.info("insufficient IOSS enrolments")
+        logger.info("insufficient Intermediary enrolments")
         Future.successful(Left(Unauthorized))
-      case Some(iossNumber) =>
-        Future.successful(Right(AuthorisedMandatoryIossRequest(request.request, request.credentials, request.userId, request.vrn, iossNumber)))
+      case Some(intermediaryNumber) =>
+        Future.successful(
+          Right(
+            AuthorisedMandatoryIntermediaryRequest(
+              request.request,
+              request.credentials,
+              request.userId,
+              request.vrn,
+              request.iossNumber,
+              intermediaryNumber
+            )
+          )
+        )
     }
   }
 }
