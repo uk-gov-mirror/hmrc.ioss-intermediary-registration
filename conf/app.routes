@@ -15,3 +15,5 @@ GET         /save-for-later                                   uk.gov.hmrc.iossin
 GET         /save-for-later/delete                            uk.gov.hmrc.iossintermediaryregistration.controllers.SaveForLaterController.delete()
 
 POST        /amend                                            uk.gov.hmrc.iossintermediaryregistration.controllers.RegistrationController.amend()
+
+GET         /accounts                                         uk.gov.hmrc.iossintermediaryregistration.controllers.RegistrationController.getAccounts
