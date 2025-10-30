@@ -144,7 +144,8 @@ case class RegistrationController @Inject()(
       }
   }
 
-  def getAccounts: Action[AnyContent] = cc.authAndRequireIoss().async {
+  def getAccounts: Action[AnyContent] = cc.authAndRequireIntermediary().async {
+
     implicit request =>
       enrolmentsConnector.es2(request.credentials.providerId).map {
         case Right(enrolments) => Ok(Json.toJson(enrolments))
