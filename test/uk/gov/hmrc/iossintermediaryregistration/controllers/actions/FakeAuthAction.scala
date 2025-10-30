@@ -17,6 +17,7 @@
 package uk.gov.hmrc.iossintermediaryregistration.controllers.actions
 
 import play.api.mvc.*
+import uk.gov.hmrc.auth.core.Enrolments
 import uk.gov.hmrc.auth.core.retrieve.Credentials
 import uk.gov.hmrc.domain.Vrn
 
@@ -26,7 +27,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class FakeAuthAction @Inject()(bodyParsers: PlayBodyParsers) extends AuthAction {
 
   override def invokeBlock[A](request: Request[A], block: AuthorisedRequest[A] => Future[Result]): Future[Result] =
-    block(AuthorisedRequest(request, Credentials("12345-credId", "GGW"), "id", Some(Vrn("123456789"))))
+    block(AuthorisedRequest(request, Credentials("12345-credId", "GGW"), "id", Some(Vrn("123456789")), Enrolments(Set.empty)))
 
   override def parser: BodyParser[AnyContent] =
     bodyParsers.default

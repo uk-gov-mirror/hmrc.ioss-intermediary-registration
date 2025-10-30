@@ -18,13 +18,15 @@ package uk.gov.hmrc.iossintermediaryregistration.controllers.actions
 
 import play.api.mvc.Results.Unauthorized
 import play.api.mvc.{ActionRefiner, Result}
+import uk.gov.hmrc.auth.core.Enrolments
+import uk.gov.hmrc.iossintermediaryregistration.config.AppConfig
 import uk.gov.hmrc.iossintermediaryregistration.logging.Logging
 import uk.gov.hmrc.iossintermediaryregistration.utils.FutureSyntax.FutureOps
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class VatRequiredAction @Inject()(implicit val executionContext: ExecutionContext)
+class VatRequiredAction @Inject()(config: AppConfig)( implicit val executionContext: ExecutionContext)
   extends ActionRefiner[AuthorisedRequest, AuthorisedMandatoryVrnRequest] with Logging {
 
   override protected def refine[A](request: AuthorisedRequest[A]): Future[Either[Result, AuthorisedMandatoryVrnRequest[A]]] = {
@@ -34,7 +36,22 @@ class VatRequiredAction @Inject()(implicit val executionContext: ExecutionContex
         logger.info("insufficient enrolments")
         Left(Unauthorized).toFuture
       case Some(vrn) =>
-        Right(AuthorisedMandatoryVrnRequest(request.request, request.credentials, request.userId, vrn, iossNumber = None, intermediaryNumber = None)).toFuture
+        Right(
+          AuthorisedMandatoryVrnRequest(
+            request.request,
+            request.credentials,
+            request.userId,
+            vrn,
+            iossNumber = None,
+            intermediaryNumber = findIntermediaryNumberFromEnrolments(request.enrolments)
+          )
+        ).toFuture
     }
+  }
+
+  private def findIntermediaryNumberFromEnrolments(enrolments: Enrolments): Option[String] = {
+    enrolments.enrolments
+      .find(_.key == config.intermediaryEnrolment)
+      .flatMap(_.identifiers.find(id => id.key == config.intermediaryEnrolmentKey && id.value.nonEmpty).map(_.value))
   }
 }

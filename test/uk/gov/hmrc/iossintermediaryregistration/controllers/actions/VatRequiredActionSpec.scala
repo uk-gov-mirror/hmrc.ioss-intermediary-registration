@@ -20,14 +20,16 @@ import play.api.mvc.Result
 import play.api.mvc.Results.Unauthorized
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
+import uk.gov.hmrc.auth.core.Enrolments
 import uk.gov.hmrc.iossintermediaryregistration.base.BaseSpec
+import uk.gov.hmrc.iossintermediaryregistration.config.AppConfig
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class VatRequiredActionSpec extends BaseSpec {
 
-  class Harness() extends VatRequiredAction {
+  class Harness() extends VatRequiredAction(mock[AppConfig]) {
 
     def callRefine[A](request: AuthorisedRequest[A]): Future[Either[Result, AuthorisedMandatoryVrnRequest[A]]] = refine(request)
   }
@@ -43,7 +45,8 @@ class VatRequiredActionSpec extends BaseSpec {
         val result = action.callRefine(AuthorisedRequest(request,
           testCredentials,
           userId,
-          None
+          None,
+          Enrolments(Set.empty)
         )).futureValue
 
         result `mustBe` Left(Unauthorized)
@@ -56,10 +59,11 @@ class VatRequiredActionSpec extends BaseSpec {
         val result = action.callRefine(AuthorisedRequest(request,
           testCredentials,
           userId,
-          Some(vrn)
+          Some(vrn),
+          Enrolments(Set.empty)
         )).futureValue
 
-        val expectResult = AuthorisedMandatoryVrnRequest(request, testCredentials, userId, vrn)
+        val expectResult = AuthorisedMandatoryVrnRequest(request, testCredentials, userId, vrn, None, None)
 
         result `mustBe` Right(expectResult)
       }
@@ -74,7 +78,8 @@ class VatRequiredActionSpec extends BaseSpec {
         val result = action.callRefine(AuthorisedRequest(request,
           testCredentials,
           userId,
-          None
+          None,
+          Enrolments(Set.empty)
         )).futureValue
 
         result `mustBe` Left(Unauthorized)
