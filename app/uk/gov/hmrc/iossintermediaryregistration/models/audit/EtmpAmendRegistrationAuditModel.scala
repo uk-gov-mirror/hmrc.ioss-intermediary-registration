@@ -18,21 +18,20 @@ package uk.gov.hmrc.iossintermediaryregistration.models.audit
 
 import play.api.libs.json.{JsObject, JsValue, Json}
 import uk.gov.hmrc.iossintermediaryregistration.controllers.actions.AuthorisedMandatoryVrnRequest
-import uk.gov.hmrc.iossintermediaryregistration.models.etmp.EtmpRegistrationRequest
-import uk.gov.hmrc.iossintermediaryregistration.models.etmp.amend.AmendRegistrationResponse
+import uk.gov.hmrc.iossintermediaryregistration.models.etmp.amend.{AmendRegistrationResponse, EtmpAmendRegistrationRequest}
 import uk.gov.hmrc.iossintermediaryregistration.models.etmp.responses.EtmpEnrolmentResponse
 
-case class EtmpRegistrationRequestAuditModel(
-                                              etmpRegistrationAuditType: EtmpRegistrationAuditType,
-                                              userId: String,
-                                              userAgent: String,
-                                              vrn: String,
-                                              etmpRegistrationRequest: EtmpRegistrationRequest,
-                                              etmpEnrolmentResponse: Option[EtmpEnrolmentResponse],
-                                              etmpAmendResponse: Option[AmendRegistrationResponse],
-                                              errorResponse: Option[String],
-                                              submissionResult: SubmissionResult
-                                            ) extends JsonAuditModel {
+case class EtmpAmendRegistrationAuditModel(
+                                            etmpRegistrationAuditType: EtmpRegistrationAuditType,
+                                            userId: String,
+                                            userAgent: String,
+                                            vrn: String,
+                                            etmpRegistrationRequest: EtmpAmendRegistrationRequest,
+                                            etmpEnrolmentResponse: Option[EtmpEnrolmentResponse],
+                                            etmpAmendResponse: Option[AmendRegistrationResponse],
+                                            errorResponse: Option[String],
+                                            submissionResult: SubmissionResult
+                                          ) extends JsonAuditModel {
 
   override val auditType: String = etmpRegistrationAuditType.auditType
 
@@ -70,17 +69,17 @@ case class EtmpRegistrationRequestAuditModel(
     errorResponseObj
 }
 
-object EtmpRegistrationRequestAuditModel {
+object EtmpAmendRegistrationAuditModel {
 
   def build(
              etmpRegistrationAuditType: EtmpRegistrationAuditType,
-             etmpRegistrationRequest: EtmpRegistrationRequest,
+             etmpRegistrationRequest: EtmpAmendRegistrationRequest,
              etmpEnrolmentResponse: Option[EtmpEnrolmentResponse],
              etmpAmendResponse: Option[AmendRegistrationResponse],
              errorResponse: Option[String],
              submissionResult: SubmissionResult
-           )(implicit request: AuthorisedMandatoryVrnRequest[_]): EtmpRegistrationRequestAuditModel =
-    EtmpRegistrationRequestAuditModel(
+           )(implicit request: AuthorisedMandatoryVrnRequest[_]): EtmpAmendRegistrationAuditModel =
+    EtmpAmendRegistrationAuditModel(
       etmpRegistrationAuditType = etmpRegistrationAuditType,
       userId = request.userId,
       userAgent = request.headers.get("user-agent").getOrElse(""),

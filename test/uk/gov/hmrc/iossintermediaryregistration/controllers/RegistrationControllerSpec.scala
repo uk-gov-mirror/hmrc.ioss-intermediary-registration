@@ -15,7 +15,7 @@ import uk.gov.hmrc.iossintermediaryregistration.base.BaseSpec
 import uk.gov.hmrc.iossintermediaryregistration.connectors.EnrolmentsConnector
 import uk.gov.hmrc.iossintermediaryregistration.controllers.actions.AuthorisedMandatoryVrnRequest
 import uk.gov.hmrc.iossintermediaryregistration.models.*
-import uk.gov.hmrc.iossintermediaryregistration.models.audit.{EtmpRegistrationAuditType, EtmpRegistrationRequestAuditModel, SubmissionResult}
+import uk.gov.hmrc.iossintermediaryregistration.models.audit.{EtmpAmendRegistrationAuditModel, EtmpRegistrationAuditType, EtmpRegistrationRequestAuditModel, SubmissionResult}
 import uk.gov.hmrc.iossintermediaryregistration.models.etmp.EtmpRegistrationStatus
 import uk.gov.hmrc.iossintermediaryregistration.models.etmp.amend.{AmendRegistrationResponse, EtmpAmendRegistrationRequest}
 import uk.gov.hmrc.iossintermediaryregistration.models.etmp.display.RegistrationWrapper
@@ -96,6 +96,7 @@ class RegistrationControllerSpec extends BaseSpec with BeforeAndAfterEach {
           etmpRegistrationAuditType = EtmpRegistrationAuditType.CreateRegistration,
           etmpRegistrationRequest = etmpRegistrationRequest,
           etmpEnrolmentResponse = Some(etmpEnrolmentResponse),
+          etmpAmendResponse = None,
           errorResponse = None,
           submissionResult = SubmissionResult.Success
         )
@@ -170,6 +171,7 @@ class RegistrationControllerSpec extends BaseSpec with BeforeAndAfterEach {
           etmpRegistrationAuditType = EtmpRegistrationAuditType.CreateRegistration,
           etmpRegistrationRequest = etmpRegistrationRequest,
           etmpEnrolmentResponse = None,
+          etmpAmendResponse = None,
           errorResponse = Some(etmpEnrolmentError.body),
           submissionResult = SubmissionResult.Duplicate
         )
@@ -207,6 +209,7 @@ class RegistrationControllerSpec extends BaseSpec with BeforeAndAfterEach {
           etmpRegistrationAuditType = EtmpRegistrationAuditType.CreateRegistration,
           etmpRegistrationRequest = etmpRegistrationRequest,
           etmpEnrolmentResponse = None,
+          etmpAmendResponse = None,
           errorResponse = Some(ServiceUnavailable.body),
           submissionResult = SubmissionResult.Failure
         )
@@ -329,6 +332,84 @@ class RegistrationControllerSpec extends BaseSpec with BeforeAndAfterEach {
         val result = route(app, request).value
 
         status(result) `mustBe` BAD_REQUEST
+      }
+    }
+
+    "must audit successfully when registration is amended" in {
+
+      val etmpAmendRegistrationRequest: EtmpAmendRegistrationRequest = RegistrationData.etmpAmendRegistrationRequest
+      val responseJson = Json.toJson(amendRegistrationResponse)
+
+      when(mockRegistrationService.amendRegistration(any())) thenReturn Right(amendRegistrationResponse).toFuture
+      doNothing().when(mockAuditService).audit(any())(any(), any())
+
+      val app = applicationBuilder
+        .overrides(bind[RegistrationService].toInstance(mockRegistrationService))
+        .overrides(bind[AuditService].toInstance(mockAuditService))
+        .build()
+
+      running(app) {
+
+        val request =
+          FakeRequest(POST, amendRegistrationRoute)
+            .withJsonBody(Json.toJson(etmpAmendRegistrationRequest))
+
+        val result = route(app, request).value
+
+        implicit val dataRequest: AuthorisedMandatoryVrnRequest[AnyContentAsJson] =
+          AuthorisedMandatoryVrnRequest(request, testCredentials, "id", vrn)
+
+        val expectedAuditEvent = EtmpAmendRegistrationAuditModel.build(
+          etmpRegistrationAuditType = EtmpRegistrationAuditType.AmendRegistration,
+          etmpRegistrationRequest = etmpAmendRegistrationRequest,
+          etmpEnrolmentResponse = None,
+          etmpAmendResponse = Some(amendRegistrationResponse),
+          errorResponse = None,
+          submissionResult = SubmissionResult.Success
+        )
+
+        status(result) `mustBe` OK
+        contentAsJson(result) `mustBe` responseJson
+        verify(mockAuditService, times(1)).audit(eqTo(expectedAuditEvent))(any(), any())
+      }
+    }
+
+    "must audit failure when amendRegistration fails" in {
+
+      val etmpAmendRegistrationRequest: EtmpAmendRegistrationRequest = RegistrationData.etmpAmendRegistrationRequest
+
+      when(mockRegistrationService.amendRegistration(any())) thenReturn Left(Exception("Error")).toFuture
+      doNothing().when(mockAuditService).audit(any())(any(), any())
+
+      val app = applicationBuilder
+        .overrides(bind[RegistrationService].toInstance(mockRegistrationService))
+        .overrides(bind[AuditService].toInstance(mockAuditService))
+        .build()
+
+      running(app) {
+
+        val request =
+          FakeRequest(POST, amendRegistrationRoute)
+            .withJsonBody(Json.toJson(etmpAmendRegistrationRequest))
+
+        val result = route(app, request).value
+
+        implicit val dataRequest: AuthorisedMandatoryVrnRequest[AnyContentAsJson] =
+          AuthorisedMandatoryVrnRequest(request, testCredentials, "id", vrn)
+
+        val expectedErrorMessage = "Internal server error: java.lang.Exception: Error and message: Error."
+
+        val expectedAuditEvent = EtmpAmendRegistrationAuditModel.build(
+          etmpRegistrationAuditType = EtmpRegistrationAuditType.AmendRegistration,
+          etmpRegistrationRequest = etmpAmendRegistrationRequest,
+          etmpEnrolmentResponse = None,
+          etmpAmendResponse = None,
+          errorResponse = Some(expectedErrorMessage),
+          submissionResult = SubmissionResult.Failure
+        )
+
+        status(result) mustBe INTERNAL_SERVER_ERROR
+        verify(mockAuditService, times(1)).audit(eqTo(expectedAuditEvent))(any(), any())
       }
     }
   }

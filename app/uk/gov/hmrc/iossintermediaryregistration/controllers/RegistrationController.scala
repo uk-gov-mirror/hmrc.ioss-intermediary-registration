@@ -24,7 +24,9 @@ import uk.gov.hmrc.iossintermediaryregistration.connectors.EnrolmentsConnector
 import uk.gov.hmrc.iossintermediaryregistration.controllers.actions.{AuthenticatedControllerComponents, AuthorisedMandatoryVrnRequest}
 import uk.gov.hmrc.iossintermediaryregistration.logging.Logging
 import uk.gov.hmrc.iossintermediaryregistration.models.RegistrationStatus
-import uk.gov.hmrc.iossintermediaryregistration.models.audit.{EtmpRegistrationAuditType, EtmpRegistrationRequestAuditModel, SubmissionResult}
+import uk.gov.hmrc.iossintermediaryregistration.models.audit.EtmpRegistrationAuditType.AmendRegistration
+import uk.gov.hmrc.iossintermediaryregistration.models.audit.SubmissionResult.{Failure, Success}
+import uk.gov.hmrc.iossintermediaryregistration.models.audit.{EtmpAmendRegistrationAuditModel, EtmpRegistrationAuditType, EtmpRegistrationRequestAuditModel, SubmissionResult}
 import uk.gov.hmrc.iossintermediaryregistration.models.etmp.amend.EtmpAmendRegistrationRequest
 import uk.gov.hmrc.iossintermediaryregistration.models.etmp.responses.{EtmpEnrolmentErrorResponse, EtmpEnrolmentResponse}
 import uk.gov.hmrc.iossintermediaryregistration.models.etmp.{EtmpRegistrationRequest, EtmpRegistrationStatus}
@@ -62,7 +64,7 @@ case class RegistrationController @Inject()(
           }
         case Left(EtmpEnrolmentError(EtmpEnrolmentErrorResponse.alreadyActiveSubscriptionErrorCode, body)) =>
           auditService.audit(EtmpRegistrationRequestAuditModel.build(
-            EtmpRegistrationAuditType.CreateRegistration, request.body, None, Some(body), SubmissionResult.Duplicate)
+            EtmpRegistrationAuditType.CreateRegistration, request.body, None, None, Some(body), SubmissionResult.Duplicate)
           )
           logger.error(
             s"Business Partner already has an active IOSS Subscription for this regime with error code ${EtmpEnrolmentErrorResponse.alreadyActiveSubscriptionErrorCode}" +
@@ -74,7 +76,7 @@ case class RegistrationController @Inject()(
           )).toFuture
         case Left(error) =>
           auditService.audit(EtmpRegistrationRequestAuditModel.build(
-            EtmpRegistrationAuditType.CreateRegistration, request.body, None, Some(error.body), SubmissionResult.Failure)
+            EtmpRegistrationAuditType.CreateRegistration, request.body, None, None, Some(error.body), SubmissionResult.Failure)
           )
           logger.error(s"Internal server error ${error.body}")
           InternalServerError(Json.toJson(s"Internal server error ${error.body}")).toFuture
@@ -108,7 +110,7 @@ case class RegistrationController @Inject()(
     etmpRegistrationStatus match {
       case EtmpRegistrationStatus.Success =>
         auditService.audit(EtmpRegistrationRequestAuditModel.build(
-          EtmpRegistrationAuditType.CreateRegistration, request.body, Some(etmpEnrolmentResponse), None, SubmissionResult.Success)
+          EtmpRegistrationAuditType.CreateRegistration, request.body, Some(etmpEnrolmentResponse), None, None, SubmissionResult.Success)
         )
         logger.info("Successfully created registration and enrolment")
         successResponse
@@ -135,10 +137,34 @@ case class RegistrationController @Inject()(
       val etmpAmendRegistrationRequest: EtmpAmendRegistrationRequest = request.body
       registrationService.amendRegistration(etmpAmendRegistrationRequest).map {
         case Right(amendRegistrationResponse) =>
+
+          auditService.audit(
+            EtmpAmendRegistrationAuditModel.build(
+              etmpRegistrationAuditType = AmendRegistration,
+              etmpRegistrationRequest = etmpAmendRegistrationRequest,
+              etmpEnrolmentResponse = None,
+              etmpAmendResponse = Some(amendRegistrationResponse),
+              errorResponse = None,
+              submissionResult = Success
+            )(request)
+          )
+          logger.info("Successfully amended registration")
           Ok(Json.toJson(amendRegistrationResponse))
 
         case Left(error) =>
-          val errorMessage: String = s"Internal server error with error: $error and message: ${error.getMessage}."
+          val errorMessage: String = s"Internal server error: $error and message: ${error.getMessage}."
+
+          auditService.audit(
+            EtmpAmendRegistrationAuditModel.build(
+              etmpRegistrationAuditType = AmendRegistration,
+              etmpRegistrationRequest = etmpAmendRegistrationRequest,
+              etmpEnrolmentResponse = None,
+              etmpAmendResponse = None,
+              errorResponse = Some(errorMessage),
+              submissionResult = Failure
+            )
+          )
+          
           logger.error(errorMessage)
           InternalServerError(errorMessage)
       }
